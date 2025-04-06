@@ -19,6 +19,7 @@ app = dash.Dash(
             <title>{%title%}</title>
             {%favicon%}
             {%css%}
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(20px); }
@@ -79,7 +80,7 @@ app = dash.Dash(
     '''
 )
 
-server = app.server  # Add this line for production deployment
+server = app.server  # This is needed for production deployment
 
 # Define the layout
 app.layout = html.Div([
@@ -114,8 +115,8 @@ def display_page(pathname):
         return create_navigation_dashboard(pathname)
 
 if __name__ == '__main__':
-    app.run(
-        debug=False,  # Set to False for production
-        host='0.0.0.0',
-        port=8050
-    ) 
+    # Development settings
+    app.run(debug=False, host='0.0.0.0', port=8050)
+else:
+    # Production settings
+    server = app.server  # This is for WSGI servers like gunicorn 
