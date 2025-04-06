@@ -16,382 +16,673 @@ COLORS = {
     'text': '#455A64',         # Dark slate
 }
 
-def create_donut_graph(value_left, value_right, title_left, title_right):
-    return {
-        'data': [
-            {
-                'values': [value_left, 100-value_left],
-                'type': 'pie',
-                'hole': .7,
-                'name': title_left,
-                'marker': {'colors': [COLORS['secondary'], '#E0E0E0']},
-                'domain': {'x': [0, 0.48]},
-                'textinfo': 'none',
-                'hoverinfo': 'none'
-            },
-            {
-                'values': [value_right, 100-value_right],
-                'type': 'pie',
-                'hole': .7,
-                'name': title_right,
-                'marker': {'colors': [COLORS['primary'], '#E0E0E0']},
-                'domain': {'x': [0.52, 1]},
-                'textinfo': 'none',
-                'hoverinfo': 'none'
-            }
-        ],
-        'layout': {
-            'annotations': [
-                # Left percentage
-                {
-                    'text': f'{value_left}%',
-                    'x': 0.24,
-                    'y': 0.5,
-                    'font': {'size': 48, 'color': COLORS['secondary']},
-                    'showarrow': False,
-                    'xanchor': 'center',
-                    'yanchor': 'middle'
-                },
-                # Right percentage
-                {
-                    'text': f'{value_right}%',
-                    'x': 0.76,
-                    'y': 0.5,
-                    'font': {'size': 48, 'color': COLORS['primary']},
-                    'showarrow': False,
-                    'xanchor': 'center',
-                    'yanchor': 'middle'
-                }
-            ],
-            'showlegend': False,
-            'margin': {'t': 30, 'b': 30, 'l': 30, 'r': 30},
-            'height': 350
-        }
+# Define dates for all graphs
+DATES = pd.date_range(start='2023-01-01', end='2023-12-31', freq='ME')
+
+# Sample data for power metrics
+power_data = {
+    "Vertical Jump": {"left": 55.2, "right": 58.1, "target": 65, "unit": "cm"},
+    "Broad Jump": {"left": 215.5, "right": 220.3, "target": 245, "unit": "cm"},
+    "Medicine Ball Throw": {"left": 8.2, "right": 8.7, "target": 10, "unit": "m"}
+}
+
+# Sample data for reactive metrics
+reactive_data = {
+    "Drop Jump": {"left": 32.5, "right": 33.8, "target": 38, "unit": "cm"},
+    "Reactive Strength Index": {"left": 1.8, "right": 1.85, "target": 2.0, "unit": "m/s"},
+    "Contact Time": {"left": 0.17, "right": 0.165, "target": 0.2, "unit": "s"}
+}
+
+# Sample data for strength metrics
+strength_data = {
+    "Isometric Knee Extension Strength": {
+        "left": 2.9,
+        "right": 3.1,
+        "target": 3.3,
+        "unit": "N.m.kg⁻¹",
+        "test_date": "15/03/2024"
+    },
+    "Eccentric Knee Flexion Strength [Nordic]": {
+        "left": 1.8,
+        "right": 1.7,
+        "target": 2.0,
+        "unit": "N.m.kg⁻¹",
+        "test_date": "15/03/2024"
+    },
+    "Seated Plantarflexion Strength": {
+        "left": 180,
+        "right": 175,
+        "target": 200,
+        "unit": "% BW",
+        "test_date": "15/03/2024"
     }
+}
+
+def create_strength_chart(title):
+    data = strength_data[title]
+    left_raw = data["left"]
+    right_raw = data["right"]
+    target = data["target"]
+    unit = data["unit"]
+    test_date = data["test_date"]
+    
+    # Calculate percentages
+    left_percent = min(100, (left_raw / target) * 100)
+    right_percent = min(100, (right_raw / target) * 100)
+    
+    # Calculate asymmetry
+    asymmetry = abs(left_raw - right_raw) / max(left_raw, right_raw) * 100
+    asymmetry_color = (
+        '#4CAF50' if asymmetry < 10 else  # Green for <10%
+        '#FFC107' if asymmetry < 20 else  # Amber for 10-20%
+        '#F44336'  # Red for >20%
+    )
+    
+    # Create left donut
+    fig_left = go.Figure()
+    fig_left.add_trace(go.Pie(
+        values=[left_percent, 100-left_percent],
+        hole=0.7,
+        marker_colors=[COLORS['secondary'], 'rgba(0, 188, 212, 0.2)'],
+        showlegend=False,
+        textinfo='none',
+        hoverinfo='none'
+    ))
+    fig_left.update_layout(
+        title="Left",
+        showlegend=False,
+        margin=dict(t=30, b=30, l=30, r=30),
+        height=250,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Helvetica, Arial, sans-serif"),
+        autosize=True,
+        dragmode='pan'
+    )
+    # Add percentage
+    fig_left.add_annotation(
+        text=f"{left_percent:.0f}%",
+        x=0.5,
+        y=0.65,
+        font=dict(size=36, color=COLORS['secondary']),
+        showarrow=False
+    )
+    # Add raw value
+    fig_left.add_annotation(
+        text=f"{left_raw:.1f} {unit}",
+        x=0.5,
+        y=0.35,
+        font=dict(size=16, color=COLORS['secondary']),
+        showarrow=False
+    )
+    
+    # Create right donut
+    fig_right = go.Figure()
+    fig_right.add_trace(go.Pie(
+        values=[right_percent, 100-right_percent],
+        hole=0.7,
+        marker_colors=[COLORS['primary'], 'rgba(69, 90, 100, 0.2)'],
+        showlegend=False,
+        textinfo='none',
+        hoverinfo='none'
+    ))
+    fig_right.update_layout(
+        title="Right",
+        showlegend=False,
+        margin=dict(t=30, b=30, l=30, r=30),
+        height=250,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Helvetica, Arial, sans-serif"),
+        autosize=True,
+        dragmode='pan'
+    )
+    # Add percentage
+    fig_right.add_annotation(
+        text=f"{right_percent:.0f}%",
+        x=0.5,
+        y=0.65,
+        font=dict(size=36, color=COLORS['primary']),
+        showarrow=False
+    )
+    # Add raw value
+    fig_right.add_annotation(
+        text=f"{right_raw:.1f} {unit}",
+        x=0.5,
+        y=0.35,
+        font=dict(size=16, color=COLORS['primary']),
+        showarrow=False
+    )
+    
+    return html.Div([
+        html.H3(title, style={
+            'textAlign': 'center',
+            'color': COLORS['text'],
+            'marginBottom': '20px'
+        }),
+        html.Div([
+            html.Div([
+                dcc.Graph(
+                    figure=fig_left,
+                    style={'height': '250px', 'marginBottom': '5px'},
+                    config={'displayModeBar': False}
+                ),
+                html.Div([
+                    html.Span("Asymmetry: ", style={
+                        'color': COLORS['text'],
+                        'fontSize': '14px',
+                        'fontWeight': 'normal'
+                    }),
+                    html.Span(f"{asymmetry:.1f}%", style={
+                        'color': asymmetry_color,
+                        'fontSize': '16px',
+                        'fontWeight': 'bold',
+                        'marginLeft': '2px'
+                    })
+                ], style={
+                    'textAlign': 'center',
+                    'marginTop': '5px',
+                    'marginBottom': '10px',
+                    'backgroundColor': 'rgba(255, 255, 255, 0.9)',
+                    'padding': '5px',
+                    'borderRadius': '4px',
+                    'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+                })
+            ], style={'width': '50%'}),
+            html.Div([
+                dcc.Graph(
+                    figure=fig_right,
+                    style={'height': '250px', 'marginBottom': '15px'},
+                    config={'displayModeBar': False}
+                )
+            ], style={'width': '50%'})
+        ], style={
+            'display': 'flex',
+            'justifyContent': 'center',
+            'alignItems': 'flex-start'
+        }),
+        html.Div(f"Last tested: {test_date}", style={
+            'textAlign': 'center',
+            'color': COLORS['text'],
+            'fontSize': '14px',
+            'marginBottom': '20px',
+            'fontFamily': 'Helvetica, Arial, sans-serif',
+            'fontWeight': 'normal',
+            'opacity': '0.8'
+        })
+    ])
+
+def create_power_chart(title):
+    data = power_data[title]
+    left_raw = data["left"]
+    right_raw = data["right"]
+    target = data["target"]
+    unit = data["unit"]
+    
+    # Calculate percentages
+    left_percent = min(100, (left_raw / target) * 100)
+    right_percent = min(100, (right_raw / target) * 100)
+    
+    # Calculate asymmetry
+    asymmetry = abs(left_raw - right_raw) / max(left_raw, right_raw) * 100
+    asymmetry_color = (
+        '#4CAF50' if asymmetry < 10 else  # Green for <10%
+        '#FFC107' if asymmetry < 20 else  # Amber for 10-20%
+        '#F44336'  # Red for >20%
+    )
+    
+    # Create left donut
+    fig_left = go.Figure()
+    fig_left.add_trace(go.Pie(
+        values=[left_percent, 100-left_percent],
+        hole=0.7,
+        marker_colors=[COLORS['secondary'], 'rgba(0, 188, 212, 0.2)'],
+        showlegend=False,
+        textinfo='none',
+        hoverinfo='none'
+    ))
+    fig_left.update_layout(
+        title="Left",
+        showlegend=False,
+        margin=dict(t=30, b=30, l=30, r=30),
+        height=250,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Helvetica, Arial, sans-serif"),
+        autosize=True,
+        dragmode='pan'
+    )
+    # Add percentage
+    fig_left.add_annotation(
+        text=f"{left_percent:.0f}%",
+        x=0.5,
+        y=0.65,
+        font=dict(size=36, color=COLORS['secondary']),
+        showarrow=False
+    )
+    # Add raw value
+    fig_left.add_annotation(
+        text=f"{left_raw:.1f} {unit}",
+        x=0.5,
+        y=0.35,
+        font=dict(size=16, color=COLORS['secondary']),
+        showarrow=False
+    )
+    
+    # Create right donut
+    fig_right = go.Figure()
+    fig_right.add_trace(go.Pie(
+        values=[right_percent, 100-right_percent],
+        hole=0.7,
+        marker_colors=[COLORS['primary'], 'rgba(69, 90, 100, 0.2)'],
+        showlegend=False,
+        textinfo='none',
+        hoverinfo='none'
+    ))
+    fig_right.update_layout(
+        title="Right",
+        showlegend=False,
+        margin=dict(t=30, b=30, l=30, r=30),
+        height=250,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Helvetica, Arial, sans-serif"),
+        autosize=True,
+        dragmode='pan'
+    )
+    # Add percentage
+    fig_right.add_annotation(
+        text=f"{right_percent:.0f}%",
+        x=0.5,
+        y=0.65,
+        font=dict(size=36, color=COLORS['primary']),
+        showarrow=False
+    )
+    # Add raw value
+    fig_right.add_annotation(
+        text=f"{right_raw:.1f} {unit}",
+        x=0.5,
+        y=0.35,
+        font=dict(size=16, color=COLORS['primary']),
+        showarrow=False
+    )
+    
+    return html.Div([
+        html.H3(title, style={
+            'textAlign': 'center',
+            'color': COLORS['text'],
+            'marginBottom': '20px'
+        }),
+        html.Div([
+            html.Div([
+                dcc.Graph(
+                    figure=fig_left,
+                    style={'height': '250px', 'marginBottom': '5px'},
+                    config={'displayModeBar': False}
+                ),
+                html.Div([
+                    html.Span("Asymmetry: ", style={
+                        'color': COLORS['text'],
+                        'fontSize': '14px',
+                        'fontWeight': 'normal'
+                    }),
+                    html.Span(f"{asymmetry:.1f}%", style={
+                        'color': asymmetry_color,
+                        'fontSize': '16px',
+                        'fontWeight': 'bold',
+                        'marginLeft': '2px'
+                    })
+                ], style={
+                    'textAlign': 'center',
+                    'marginTop': '5px',
+                    'marginBottom': '10px',
+                    'backgroundColor': 'rgba(255, 255, 255, 0.9)',
+                    'padding': '5px',
+                    'borderRadius': '4px',
+                    'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+                })
+            ], style={'width': '50%'}),
+            html.Div([
+                dcc.Graph(
+                    figure=fig_right,
+                    style={'height': '250px', 'marginBottom': '15px'},
+                    config={'displayModeBar': False}
+                )
+            ], style={'width': '50%'})
+        ], style={
+            'display': 'flex',
+            'justifyContent': 'center',
+            'alignItems': 'flex-start'
+        })
+    ])
+
+def create_reactive_chart(title):
+    data = reactive_data[title]
+    left_raw = data["left"]
+    right_raw = data["right"]
+    target = data["target"]
+    unit = data["unit"]
+    
+    # Calculate percentages
+    left_percent = min(100, (left_raw / target) * 100)
+    right_percent = min(100, (right_raw / target) * 100)
+    
+    # Calculate asymmetry
+    asymmetry = abs(left_raw - right_raw) / max(left_raw, right_raw) * 100
+    asymmetry_color = (
+        '#4CAF50' if asymmetry < 10 else  # Green for <10%
+        '#FFC107' if asymmetry < 20 else  # Amber for 10-20%
+        '#F44336'  # Red for >20%
+    )
+    
+    # Create left donut
+    fig_left = go.Figure()
+    fig_left.add_trace(go.Pie(
+        values=[left_percent, 100-left_percent],
+        hole=0.7,
+        marker_colors=[COLORS['secondary'], 'rgba(0, 188, 212, 0.2)'],
+        showlegend=False,
+        textinfo='none',
+        hoverinfo='none'
+    ))
+    fig_left.update_layout(
+        title="Left",
+        showlegend=False,
+        margin=dict(t=30, b=30, l=30, r=30),
+        height=250,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Helvetica, Arial, sans-serif"),
+        autosize=True,
+        dragmode='pan'
+    )
+    # Add percentage
+    fig_left.add_annotation(
+        text=f"{left_percent:.0f}%",
+        x=0.5,
+        y=0.65,
+        font=dict(size=36, color=COLORS['secondary']),
+        showarrow=False
+    )
+    # Add raw value
+    fig_left.add_annotation(
+        text=f"{left_raw:.2f} {unit}",
+        x=0.5,
+        y=0.35,
+        font=dict(size=16, color=COLORS['secondary']),
+        showarrow=False
+    )
+    
+    # Create right donut
+    fig_right = go.Figure()
+    fig_right.add_trace(go.Pie(
+        values=[right_percent, 100-right_percent],
+        hole=0.7,
+        marker_colors=[COLORS['primary'], 'rgba(69, 90, 100, 0.2)'],
+        showlegend=False,
+        textinfo='none',
+        hoverinfo='none'
+    ))
+    fig_right.update_layout(
+        title="Right",
+        showlegend=False,
+        margin=dict(t=30, b=30, l=30, r=30),
+        height=250,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Helvetica, Arial, sans-serif"),
+        autosize=True,
+        dragmode='pan'
+    )
+    # Add percentage
+    fig_right.add_annotation(
+        text=f"{right_percent:.0f}%",
+        x=0.5,
+        y=0.65,
+        font=dict(size=36, color=COLORS['primary']),
+        showarrow=False
+    )
+    # Add raw value
+    fig_right.add_annotation(
+        text=f"{right_raw:.2f} {unit}",
+        x=0.5,
+        y=0.35,
+        font=dict(size=16, color=COLORS['primary']),
+        showarrow=False
+    )
+    
+    return html.Div([
+        html.H3(title, style={
+            'textAlign': 'center',
+            'color': COLORS['text'],
+            'marginBottom': '20px'
+        }),
+        html.Div([
+            html.Div([
+                dcc.Graph(
+                    figure=fig_left,
+                    style={'height': '250px', 'marginBottom': '5px'},
+                    config={'displayModeBar': False}
+                ),
+                html.Div([
+                    html.Span("Asymmetry: ", style={
+                        'color': COLORS['text'],
+                        'fontSize': '14px',
+                        'fontWeight': 'normal'
+                    }),
+                    html.Span(f"{asymmetry:.1f}%", style={
+                        'color': asymmetry_color,
+                        'fontSize': '16px',
+                        'fontWeight': 'bold',
+                        'marginLeft': '2px'
+                    })
+                ], style={
+                    'textAlign': 'center',
+                    'marginTop': '5px',
+                    'marginBottom': '10px',
+                    'backgroundColor': 'rgba(255, 255, 255, 0.9)',
+                    'padding': '5px',
+                    'borderRadius': '4px',
+                    'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+                })
+            ], style={'width': '50%'}),
+            html.Div([
+                dcc.Graph(
+                    figure=fig_right,
+                    style={'height': '250px', 'marginBottom': '15px'},
+                    config={'displayModeBar': False}
+                )
+            ], style={'width': '50%'})
+        ], style={
+            'display': 'flex',
+            'justifyContent': 'center',
+            'alignItems': 'flex-start'
+        })
+    ])
+
+def create_line_graph(title, yaxis_title, target=None):
+    # Create sample data for the line graph
+    data = pd.DataFrame({
+        'Date': DATES,
+        'Left': np.random.normal(100, 10, len(DATES)),
+        'Right': np.random.normal(100, 10, len(DATES))
+    })
+    
+    # Get the most recent test date
+    latest_date = data['Date'].max()
+    test_date = latest_date.strftime('%d/%m/%Y')
+    
+    # Create line graph
+    fig_line = go.Figure()
+    
+    # Add glow effect for left
+    for i in range(5, 0, -1):
+        fig_line.add_trace(go.Scatter(
+            x=data['Date'],
+            y=data['Left'],
+            name='',
+            line=dict(color=COLORS['secondary'], width=2*i),
+            opacity=0.1,
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+    
+    # Add main left trace
+    fig_line.add_trace(go.Scatter(
+        x=data['Date'],
+        y=data['Left'],
+        name='Left',
+        line=dict(color=COLORS['secondary'], width=2),
+        hovertemplate='%{y:.1f}'
+    ))
+    
+    # Add glow effect for right
+    for i in range(5, 0, -1):
+        fig_line.add_trace(go.Scatter(
+            x=data['Date'],
+            y=data['Right'],
+            name='',
+            line=dict(color=COLORS['primary'], width=2*i),
+            opacity=0.1,
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+    
+    # Add main right trace
+    fig_line.add_trace(go.Scatter(
+        x=data['Date'],
+        y=data['Right'],
+        name='Right',
+        line=dict(color=COLORS['primary'], width=2),
+        hovertemplate='%{y:.1f}'
+    ))
+    
+    fig_line.update_layout(
+        title=title,
+        xaxis_title='Date',
+        yaxis_title=yaxis_title,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        margin=dict(l=40, r=40, t=40, b=40),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Helvetica, Arial, sans-serif"),
+        autosize=True,
+        dragmode='pan'
+    )
+    
+    if target:
+        fig_line.add_hline(y=target, line_width=2, line_color=COLORS['primary'], opacity=0.5)
+    
+    return html.Div([
+        dcc.Graph(
+            id=f'graph-{title.lower().replace(" ", "-")}',
+            figure=fig_line,
+            style={'height': '400px', 'marginBottom': '10px'},
+            config={'responsive': True, 'displayModeBar': False}
+        ),
+        html.Div(f"Last tested: {test_date}", style={
+            'textAlign': 'center',
+            'color': COLORS['text'],
+            'fontSize': '14px',
+            'marginBottom': '20px',
+            'fontFamily': 'Helvetica, Arial, sans-serif',
+            'fontWeight': 'normal',
+            'opacity': '0.8'
+        })
+    ])
 
 def create_metric_page(title, active_page):
+    # Initialize dates for dropdown
+    dates = [pd.to_datetime("15/03/2024", format="%d/%m/%Y")]  # Default date
+    
     # Return the capacity page if active_page is "capacity"
     if active_page == "capacity":
         return create_capacity_page(active_page)
 
-    # Sample data for other metric types
-    dates = pd.date_range(start='2023-01-01', end='2023-12-31', freq='ME')
-    data = pd.DataFrame({
-        'Date': dates,
-        'Left': np.random.normal(100, 10, len(dates)),
-        'Right': np.random.normal(100, 10, len(dates))
-    })
-    
-    # Create line graphs with glow effect
-    def create_line_graph(title, yaxis_title, target=None):
-        # Get the most recent test date
-        latest_date = data['Date'].max()
-        test_date = latest_date.strftime('%d/%m/%Y')
-        
-        # Create line graph
-        fig_line = go.Figure()
-        
-        # Add glow effect for left
-        for i in range(5, 0, -1):
-            fig_line.add_trace(go.Scatter(
-                x=data['Date'],
-                y=data['Left'],
-                name='',
-                line=dict(color=COLORS['secondary'], width=2*i),
-                opacity=0.1,
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-        
-        # Add main left trace
-        fig_line.add_trace(go.Scatter(
-            x=data['Date'],
-            y=data['Left'],
-            name='Left',
-            line=dict(color=COLORS['secondary'], width=2),
-            hovertemplate='%{y:.1f}'
-        ))
-        
-        # Add glow effect for right
-        for i in range(5, 0, -1):
-            fig_line.add_trace(go.Scatter(
-                x=data['Date'],
-                y=data['Right'],
-                name='',
-                line=dict(color=COLORS['primary'], width=2*i),
-                opacity=0.1,
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-        
-        # Add main right trace
-        fig_line.add_trace(go.Scatter(
-            x=data['Date'],
-            y=data['Right'],
-            name='Right',
-            line=dict(color=COLORS['primary'], width=2),
-            hovertemplate='%{y:.1f}'
-        ))
-        
-        fig_line.update_layout(
-            title=title,
-            xaxis_title='Date',
-            yaxis_title=yaxis_title,
-            showlegend=True,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            ),
-            margin=dict(l=40, r=40, t=40, b=40),
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(family="Helvetica, Arial, sans-serif"),
-            # Add responsive sizing
-            autosize=True,
-            # Improve touch interaction
-            dragmode='pan'
-        )
-        
-        if target:
-            fig_line.add_hline(y=target, line_width=2, line_color=COLORS['primary'], opacity=0.5)
-        
-        # Create donut charts for target achievement if target is specified
-        donut_charts = []
-        if target:
-            # Calculate percentages for left and right
-            left_percent = min(100, (data['Left'].iloc[-1] / target) * 100)
-            right_percent = min(100, (data['Right'].iloc[-1] / target) * 100)
-            
-            # Create left donut
-            fig_left = go.Figure()
-            fig_left.add_trace(go.Pie(
-                values=[left_percent, 100-left_percent],
-                hole=0.7,
-                marker_colors=[COLORS['secondary'], 'rgba(0, 188, 212, 0.2)'],
-                showlegend=False,
-                textinfo='none',
-                hoverinfo='none'
-            ))
-            fig_left.update_layout(
-                title="Left",
-                showlegend=False,
-                margin=dict(t=30, b=30, l=30, r=30),
-                height=200,
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                font=dict(family="Helvetica, Arial, sans-serif"),
-                # Add responsive sizing
-                autosize=True,
-                # Improve touch interaction
-                dragmode='pan'
-            )
-            fig_left.add_annotation(
-                text=f"{left_percent:.0f}%",
-                x=0.5,
-                y=0.5,
-                font=dict(size=36, color=COLORS['secondary']),
-                showarrow=False
-            )
-            
-            # Create right donut
-            fig_right = go.Figure()
-            fig_right.add_trace(go.Pie(
-                values=[right_percent, 100-right_percent],
-                hole=0.7,
-                marker_colors=[COLORS['primary'], 'rgba(69, 90, 100, 0.2)'],
-                showlegend=False,
-                textinfo='none',
-                hoverinfo='none'
-            ))
-            fig_right.update_layout(
-                title="Right",
-                showlegend=False,
-                margin=dict(t=30, b=30, l=30, r=30),
-                height=200,
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                font=dict(family="Helvetica, Arial, sans-serif"),
-                # Add responsive sizing
-                autosize=True,
-                # Improve touch interaction
-                dragmode='pan'
-            )
-            fig_right.add_annotation(
-                text=f"{right_percent:.0f}%",
-                x=0.5,
-                y=0.5,
-                font=dict(size=36, color=COLORS['primary']),
-                showarrow=False
-            )
-            
-            donut_charts = [
-                dcc.Graph(
-                    id=f'donut-left-{title.lower().replace(" ", "-")}',
-                    figure=fig_left,
-                    style={'height': '200px', 'marginBottom': '10px'},
-                    config={'responsive': True, 'displayModeBar': False}
-                ),
-                dcc.Graph(
-                    id=f'donut-right-{title.lower().replace(" ", "-")}',
-                    figure=fig_right,
-                    style={'height': '200px', 'marginBottom': '10px'},
-                    config={'responsive': True, 'displayModeBar': False}
-                )
-            ]
-        
-        return html.Div([
-            html.Div([
-                dcc.Graph(
-                    id=f'graph-{title.lower().replace(" ", "-")}',
-                    figure=fig_line,
-                    style={'height': '400px', 'marginBottom': '10px'},
-                    config={'responsive': True, 'displayModeBar': False}
-                ),
-                html.Div(f"Last tested: {test_date}", style={
-                    'textAlign': 'center',
-                    'color': COLORS['text'],
-                    'fontSize': '14px',
-                    'marginBottom': '20px',
-                    'fontFamily': 'Helvetica, Arial, sans-serif',
-                    'fontWeight': 'normal',
-                    'opacity': '0.8'
-                })
-            ], style={
-                'width': '70%',
-                'display': 'inline-block',
-                '@media (max-width: 768px)': {
-                    'width': '100%'
-                }
-            }),
-            html.Div(donut_charts, style={
-                'width': '30%',
-                'display': 'inline-block',
-                'verticalAlign': 'top',
-                'paddingTop': '40px',
-                '@media (max-width: 768px)': {
-                    'width': '100%',
-                    'display': 'flex',
-                    'flexDirection': 'row',
-                    'justifyContent': 'space-around',
-                    'paddingTop': '20px'
-                }
-            })
-        ], style={
-            'display': 'flex',
-            'flexWrap': 'wrap',
-            '@media (max-width: 768px)': {
-                'flexDirection': 'column'
-            }
-        })
-
-    # Create donut charts for power and reactive strength
-    def create_donut_chart(title, value_left, value_right):
-        # Get the most recent test date
-        latest_date = data['Date'].max()
-        test_date = latest_date.strftime('%d/%m/%Y')
-        
-        fig = go.Figure()
-        
-        # Add left donut
-        fig.add_trace(go.Pie(
-            values=[value_left, 100-value_left],
-            hole=0.7,
-            marker_colors=[COLORS['secondary'], 'rgba(0, 188, 212, 0.2)'],
-            showlegend=False,
-            textinfo='none',
-            hoverinfo='none',
-            domain={'x': [0, 0.48]}
-        ))
-        
-        # Add right donut
-        fig.add_trace(go.Pie(
-            values=[value_right, 100-value_right],
-            hole=0.7,
-            marker_colors=[COLORS['primary'], 'rgba(69, 90, 100, 0.2)'],
-            showlegend=False,
-            textinfo='none',
-            hoverinfo='none',
-            domain={'x': [0.52, 1]}
-        ))
-        
-        # Add annotations for percentages
-        fig.add_annotation(
-            text=f"{value_left}%",
-            x=0.24,
-            y=0.5,
-            font=dict(size=48, color=COLORS['secondary']),
-            showarrow=False
-        )
-        
-        fig.add_annotation(
-            text=f"{value_right}%",
-            x=0.76,
-            y=0.5,
-            font=dict(size=48, color=COLORS['primary']),
-            showarrow=False
-        )
-        
-        fig.update_layout(
-            title=title,
-            showlegend=False,
-            margin=dict(t=30, b=30, l=30, r=30),
-            height=350,
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(family="Helvetica, Arial, sans-serif")
-        )
-        
-        return html.Div([
-            dcc.Graph(
-                id=f'donut-{title.lower().replace(" ", "-")}',
-                figure=fig,
-                style={'height': '400px', 'marginBottom': '10px'}
-            ),
-            html.Div(f"Last tested: {test_date}", style={
-                'textAlign': 'center',
-                'color': COLORS['text'],
-                'fontSize': '14px',
-                'marginBottom': '20px',
-                'fontFamily': 'Helvetica, Arial, sans-serif',
-                'fontWeight': 'normal',
-                'opacity': '0.8'
-            })
-        ])
-
     # Create appropriate graphs based on metric type
     if active_page == "strength":
-        graphs = [
-            create_line_graph("Isometric Knee Extension Strength", "N.m.kg⁻¹", target=3.3),
-            create_line_graph("Eccentric Knee Flexion Strength [Nordic]", "N.m.kg⁻¹", target=2.0),
-            create_line_graph("Seated Plantarflexion Strength", "% BW", target=200)
-        ]
+        graphs = []
+        for metric in strength_data.keys():
+            # Create a row div containing both donut and line graphs
+            graphs.append(html.Div([
+                html.Div([
+                    create_strength_chart(metric)
+                ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                html.Div([
+                    create_line_graph(
+                        metric,
+                        f"Strength ({strength_data[metric]['unit']})",
+                        strength_data[metric]['target']
+                    )
+                ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'})
+            ], style={'display': 'flex', 'marginBottom': '20px'}))
     elif active_page == "power":
-        graphs = [
-            create_donut_chart("Vertical Jump", 85, 90),
-            create_donut_chart("Broad Jump", 88, 92),
-            create_donut_chart("Medicine Ball Throw", 82, 87)
-        ]
+        graphs = []
+        for metric in power_data.keys():
+            # Create a row div containing both donut and line graphs
+            graphs.append(html.Div([
+                html.Div([
+                    create_power_chart(metric)
+                ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                html.Div([
+                    create_line_graph(
+                        metric,
+                        f"Power ({power_data[metric]['unit']})",
+                        power_data[metric]['target']
+                    )
+                ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'})
+            ], style={'display': 'flex', 'marginBottom': '20px'}))
     elif active_page == "reactive":
-        graphs = [
-            create_donut_chart("Drop Jump", 87, 89),
-            create_donut_chart("Reactive Strength Index", 90, 88),
-            create_donut_chart("Contact Time", 85, 86)
-        ]
+        graphs = []
+        for metric in reactive_data.keys():
+            # Create a row div containing both donut and line graphs
+            graphs.append(html.Div([
+                html.Div([
+                    create_reactive_chart(metric)
+                ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                html.Div([
+                    create_line_graph(
+                        metric,
+                        f"Reactive Strength ({reactive_data[metric]['unit']})",
+                        reactive_data[metric]['target']
+                    )
+                ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'})
+            ], style={'display': 'flex', 'marginBottom': '20px'}))
     elif active_page == "linear":
-        graphs = [
-            create_line_graph("10m Sprint", "Time (s)"),
-            create_line_graph("20m Sprint", "Time (s)"),
-            create_line_graph("40m Sprint", "Time (s)")
-        ]
+        graphs = []
+        metrics = ["10m Sprint", "20m Sprint", "40m Sprint"]
+        for metric in metrics:
+            # Create a row div containing both donut and line graphs
+            graphs.append(html.Div([
+                html.Div([
+                    create_line_graph(
+                        metric,
+                        "Time (s)",
+                        None
+                    )
+                ], style={'width': '100%', 'display': 'inline-block', 'verticalAlign': 'top'})
+            ], style={'display': 'flex', 'marginBottom': '20px'}))
     elif active_page == "direction":
-        graphs = [
-            create_line_graph("505 Test", "Time (s)"),
-            create_line_graph("T-Test", "Time (s)"),
-            create_line_graph("Illinois Test", "Time (s)")
-        ]
+        graphs = []
+        metrics = ["505 Test", "T-Test", "Illinois Test"]
+        for metric in metrics:
+            # Create a row div containing both donut and line graphs
+            graphs.append(html.Div([
+                html.Div([
+                    create_line_graph(
+                        metric,
+                        "Time (s)",
+                        None
+                    )
+                ], style={'width': '100%', 'display': 'inline-block', 'verticalAlign': 'top'})
+            ], style={'display': 'flex', 'marginBottom': '20px'}))
     else:
         graphs = []
 
@@ -494,8 +785,8 @@ def create_metric_page(title, active_page):
                     ),
                     dcc.Dropdown(
                         id='date-dropdown',
-                        options=[{'label': date.strftime('%d/%m/%Y'), 'value': date} for date in dates],
-                        value=dates[-1],
+                        options=[{'label': date.strftime('%d/%m/%Y'), 'value': date} for date in DATES],
+                        value=DATES[-1],
                         persistence=True,
                         persistence_type='session',
                         style={
@@ -609,6 +900,10 @@ def create_pictogram_chart(title, left_reps, right_reps):
     # Determine max reps based on exercise type
     if "Calf" in title:
         max_reps = 30
+    elif "Push-ups" in title:
+        max_reps = 25
+    elif "Chin-ups" in title:
+        max_reps = 12
     else:  # For bridges and sit to stand
         max_reps = 25
 
@@ -678,6 +973,21 @@ def create_pictogram_chart(title, left_reps, right_reps):
 def create_capacity_page(active_page):
     # Define historical data for each exercise
     historical_data = {
+        # Lower Limb Tests
+        'Single Leg Calf Raises': {
+            '2023-01-01': {'left': 15, 'right': 13},
+            '2023-02-01': {'left': 17, 'right': 15},
+            '2023-03-01': {'left': 19, 'right': 17},
+            '2023-04-01': {'left': 21, 'right': 19},
+            '2023-05-01': {'left': 23, 'right': 21},
+            '2023-06-01': {'left': 25, 'right': 23},
+            '2023-07-01': {'left': 27, 'right': 25},
+            '2023-08-01': {'left': 28, 'right': 26},
+            '2023-09-01': {'left': 28, 'right': 26},
+            '2023-10-01': {'left': 28, 'right': 26},
+            '2023-11-01': {'left': 28, 'right': 26},
+            '2023-12-01': {'left': 28, 'right': 26}
+        },
         'Single Leg Bridge': {
             '2023-01-01': {'left': 12, 'right': 10},
             '2023-02-01': {'left': 14, 'right': 12},
@@ -706,19 +1016,34 @@ def create_capacity_page(active_page):
             '2023-11-01': {'left': 24, 'right': 22},
             '2023-12-01': {'left': 24, 'right': 22}
         },
-        'Single Leg Calf Raises': {
-            '2023-01-01': {'left': 15, 'right': 13},
-            '2023-02-01': {'left': 17, 'right': 15},
-            '2023-03-01': {'left': 19, 'right': 17},
-            '2023-04-01': {'left': 21, 'right': 19},
-            '2023-05-01': {'left': 23, 'right': 21},
-            '2023-06-01': {'left': 25, 'right': 23},
-            '2023-07-01': {'left': 27, 'right': 25},
-            '2023-08-01': {'left': 28, 'right': 26},
-            '2023-09-01': {'left': 28, 'right': 26},
-            '2023-10-01': {'left': 28, 'right': 26},
-            '2023-11-01': {'left': 28, 'right': 26},
-            '2023-12-01': {'left': 28, 'right': 26}
+        # Upper Limb Tests
+        'Push-ups': {
+            '2023-01-01': {'left': 15, 'right': 15},
+            '2023-02-01': {'left': 16, 'right': 16},
+            '2023-03-01': {'left': 17, 'right': 17},
+            '2023-04-01': {'left': 18, 'right': 18},
+            '2023-05-01': {'left': 19, 'right': 19},
+            '2023-06-01': {'left': 20, 'right': 20},
+            '2023-07-01': {'left': 21, 'right': 21},
+            '2023-08-01': {'left': 22, 'right': 22},
+            '2023-09-01': {'left': 23, 'right': 23},
+            '2023-10-01': {'left': 24, 'right': 24},
+            '2023-11-01': {'left': 24, 'right': 24},
+            '2023-12-01': {'left': 24, 'right': 24}
+        },
+        'Chin-ups': {
+            '2023-01-01': {'left': 5, 'right': 5},
+            '2023-02-01': {'left': 6, 'right': 6},
+            '2023-03-01': {'left': 6, 'right': 6},
+            '2023-04-01': {'left': 7, 'right': 7},
+            '2023-05-01': {'left': 7, 'right': 7},
+            '2023-06-01': {'left': 8, 'right': 8},
+            '2023-07-01': {'left': 8, 'right': 8},
+            '2023-08-01': {'left': 9, 'right': 9},
+            '2023-09-01': {'left': 9, 'right': 9},
+            '2023-10-01': {'left': 10, 'right': 10},
+            '2023-11-01': {'left': 10, 'right': 10},
+            '2023-12-01': {'left': 10, 'right': 10}
         }
     }
 
@@ -750,16 +1075,22 @@ def create_capacity_page(active_page):
 
     # Create pictogram charts for each exercise
     def create_charts(selected_date):
-        charts = []
-        for exercise in ['Single Leg Bridge', 'Single Leg Squat', 'Single Leg Calf Raises']:
+        # Separate lower and upper limb tests
+        lower_limb_tests = ['Single Leg Calf Raises', 'Single Leg Bridge', 'Single Leg Squat']
+        upper_limb_tests = ['Push-ups', 'Chin-ups']
+        
+        lower_limb_charts = []
+        upper_limb_charts = []
+        
+        # Create lower limb charts
+        for exercise in lower_limb_tests:
             latest_data = get_latest_data(exercise, selected_date)
-            # Get the test date for display below the chart
             test_date = None
             for date in sorted(historical_data[exercise].keys(), reverse=True):
                 if date <= selected_date:
                     test_date = pd.to_datetime(date).strftime('%d/%m/%Y')
                     break
-            charts.append(
+            lower_limb_charts.append(
                 html.Div([
                     create_pictogram_chart(
                         exercise,
@@ -777,7 +1108,38 @@ def create_capacity_page(active_page):
                     })
                 ])
             )
-        return charts
+        
+        # Create upper limb charts
+        for exercise in upper_limb_tests:
+            latest_data = get_latest_data(exercise, selected_date)
+            test_date = None
+            for date in sorted(historical_data[exercise].keys(), reverse=True):
+                if date <= selected_date:
+                    test_date = pd.to_datetime(date).strftime('%d/%m/%Y')
+                    break
+            upper_limb_charts.append(
+                html.Div([
+                    create_pictogram_chart(
+                        exercise,
+                        latest_data['left'],
+                        latest_data['right']
+                    ),
+                    html.Div(f"Last tested: {test_date}", style={
+                        'textAlign': 'center',
+                        'color': COLORS['text'],
+                        'fontSize': '14px',
+                        'marginTop': '10px',
+                        'fontFamily': 'Helvetica, Arial, sans-serif',
+                        'fontWeight': 'normal',
+                        'opacity': '0.8'
+                    })
+                ])
+            )
+        
+        return {
+            'lower_limb': lower_limb_charts,
+            'upper_limb': upper_limb_charts
+        }
 
     # Default to the most recent date
     default_date = dates[-1]
@@ -819,7 +1181,7 @@ def create_capacity_page(active_page):
                 "justifyContent": "center",
                 "flex": "1",
                 "position": "relative",
-                "left": "-50px"  # Adjust this value to fine-tune the centering
+                "left": "-50px"
             }),
 
             # Right side: Athlete and Date Selection
@@ -912,21 +1274,51 @@ def create_capacity_page(active_page):
             "borderRadius": "12px"
         }),
 
-        # Pictogram Charts Container
-        html.Div(charts, style={
-            "display": "flex",
-            "justifyContent": "center",
-            "alignItems": "center",
-            "flexWrap": "nowrap",
-            "gap": "20px",
-            "maxWidth": "100%",
-            "margin": "20px auto",
-            "padding": "20px",
-            "overflowX": "auto",
-            "backgroundColor": "white",
-            "boxShadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
-            "borderRadius": "12px"
-        })
+        # Lower Limb Tests Section
+        html.Div([
+            html.H2("Lower Limb Tests", style={
+                "color": COLORS['text'],
+                "fontSize": "28px",
+                "fontWeight": "bold",
+                "marginBottom": "20px",
+                "textAlign": "center"
+            }),
+            html.Div(charts['lower_limb'], style={
+                "display": "flex",
+                "justifyContent": "center",
+                "alignItems": "flex-start",
+                "flexWrap": "wrap",
+                "gap": "20px",
+                "margin": "20px auto",
+                "padding": "20px",
+                "backgroundColor": "white",
+                "boxShadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
+                "borderRadius": "12px"
+            })
+        ]),
+
+        # Upper Limb Tests Section
+        html.Div([
+            html.H2("Upper Limb Tests", style={
+                "color": COLORS['text'],
+                "fontSize": "28px",
+                "fontWeight": "bold",
+                "marginBottom": "20px",
+                "textAlign": "center"
+            }),
+            html.Div(charts['upper_limb'], style={
+                "display": "flex",
+                "justifyContent": "center",
+                "alignItems": "flex-start",
+                "flexWrap": "wrap",
+                "gap": "20px",
+                "margin": "20px auto",
+                "padding": "20px",
+                "backgroundColor": "white",
+                "boxShadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
+                "borderRadius": "12px"
+            })
+        ])
     ], style={
         "backgroundColor": "#f5f5f5",
         "minHeight": "100vh",
